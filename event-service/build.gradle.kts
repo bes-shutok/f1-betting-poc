@@ -12,7 +12,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-json")
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
-
     // Add dependency on the common module
     implementation(project(":common"))
 

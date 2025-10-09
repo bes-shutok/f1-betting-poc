@@ -14,17 +14,20 @@ dependencies {
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
     runtimeOnly("org.springframework.modulith:spring-modulith-actuator")
     runtimeOnly("org.springframework.modulith:spring-modulith-observability")
-    annotationProcessor("org.projectlombok:lombok")
+
+    // Add dependency on the common module
+    implementation(project(":common"))
 
     // Optional: OpenAPI UI
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.modulith:spring-modulith-starter-test")
     testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:postgresql")
+
+    testImplementation("net.datafaker:datafaker:2.3.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
