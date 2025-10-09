@@ -5,6 +5,7 @@ import f1.betting.poc.web.BetResponse;
 import f1.betting.poc.web.PlaceBetRequest;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -21,7 +22,8 @@ public class BettingService {
 	private final EventOutcomeRepository eventOutcomeRepository;
 	private final RestTemplate restTemplate;
 
-	private static final String EVENT_SERVICE_URL = "http://localhost:8081/api/events";
+	@Value("${event-service.base-url:http://localhost:8081}")
+	private String eventServiceBaseUrl;
 
 	/**
 	 * Place a single bet
@@ -126,7 +128,7 @@ public class BettingService {
 	}
 
 	private EventDetails fetchEventFromEventService(@NotNull Long eventId) {
-		String url = EVENT_SERVICE_URL + "/" + eventId;
+		String url = eventServiceBaseUrl + "/api/events/" + eventId;
 		return restTemplate.getForObject(url, EventDetails.class);
 	}
 }

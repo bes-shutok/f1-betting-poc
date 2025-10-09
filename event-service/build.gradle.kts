@@ -26,7 +26,6 @@ dependencies {
     testImplementation("org.springframework.modulith:spring-modulith-starter-test")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-
     testImplementation("net.datafaker:datafaker:2.3.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

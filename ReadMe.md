@@ -24,8 +24,9 @@ To run tests for all modules use following command
 ## with Docker
 1. Start docker service
 2. Run the container `docker-compose up --build user-betting`
-3. verify it works with: http://localhost:8081/api/events?country=Belgium and http://localhost:8081/api/events/9134/winner
-5. 
+3. verify it works with http://localhost:8081/swagger-ui/index.html#/
+4. Get results http://localhost:8081/api/events?country=Belgium and http://localhost:8081/api/events/9134/winner
+
 # Run all containers
 docker compose up
 
@@ -110,10 +111,10 @@ Places a single bet on a driver to win a specific event.
 
 Request body:
 {
-  "userId": 123,
-  "eventId": 9134,
-  "driverId": 1,
-  "amountEur": 25
+  "user_id": 1,
+  "event_id": 9134,
+  "driver_id": 1,
+  "amount_eur": 10
 }
 
 Validations:
@@ -122,10 +123,10 @@ Validations:
 
 Response body:
 {
-  "betId": 987,
-  "eventId": 9134,
-  "driverId": 1,
-  "amountCents": 25,
+  "bet_id": 987,
+  "event_id": 9134,
+  "driver_id": 1,
+  "amount_cents": 25,
   "odds": 3,
   "status": "PENDING"
 }
@@ -140,7 +141,7 @@ Path parameter:
 
 Request body:
 {
-  "winningDriverId": 1
+  "winning_driver_id": 1
 }
 
 Responses:
@@ -149,7 +150,7 @@ Responses:
 
 # Open API / swagger
 - user-betting: http://localhost:8080/swagger-ui/index.html
-- event-service: Swagger UI is not enabled by default in this module.
+- event-service: http://localhost:8081/swagger-ui/index.html
 
 ### Docker Compose support
 This project contains a Docker Compose file named `docker-compose.yaml`.
