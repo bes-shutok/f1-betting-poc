@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Driver {
-	private int driverNumber;
+	private Long driverNumber;
 	private String fullName;
 	private String teamName;
 	/**

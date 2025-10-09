@@ -30,7 +30,8 @@ public class TestcontainersConfiguration
 				"spring.datasource.password=" + postgres.getPassword(),
 				"spring.jpa.hibernate.ddl-auto=none",
 				"spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect",
-				"spring.flyway.enabled=true"
+				"spring.flyway.enabled=true",
+				"spring.flyway.locations=classpath:/migration"
 		).applyTo(context.getEnvironment());
 	}
 }

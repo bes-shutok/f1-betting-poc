@@ -78,7 +78,7 @@ public class OpenF1ProviderAdapter implements ProviderAdapter {
 	 * Get winner for a session based on position = 1
 	 */
 	@Override
-	public Optional<EventResult> getWinner(String sessionKey) {
+ public Optional<EventResult> getWinner(Long sessionKey) {
 		String url = baseUrl + "/position?session_key=" + sessionKey;
 		ResultRawDto[] results = restTemplate.getForObject(url, ResultRawDto[].class);
 		if (results == null || results.length == 0) {
@@ -90,7 +90,7 @@ public class OpenF1ProviderAdapter implements ProviderAdapter {
 				.findFirst()
 				.map(r -> EventResult.builder()
 						.sessionKey(sessionKey)
-						.winnerDriverNumber(r.getDriverNumber())
+						.winnerDriverNumber(r.getDriverNumber() == null ? null : r.getDriverNumber())
 						.finished(true)
 						.providerFetchedAt(OffsetDateTime.now())
 						.build());

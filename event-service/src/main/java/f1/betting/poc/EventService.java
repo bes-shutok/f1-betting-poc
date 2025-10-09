@@ -31,7 +31,7 @@ public class EventService {
 		return list.subList(from, to);
 	}
 
-	public Optional<EventResult> getWinner(String sessionKey) {
+	public Optional<EventResult> getWinner(Long sessionKey) {
 		return adapter.getWinner(sessionKey);
 	}
 }

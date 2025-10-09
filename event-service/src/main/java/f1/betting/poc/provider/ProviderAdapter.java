@@ -8,5 +8,5 @@ import java.util.Optional;
 
 public interface ProviderAdapter {
 	List<EventDetails>  getEvents(String sessionType, String country, Integer year);
-	Optional<EventResult> getWinner(String sessionKey);
+	Optional<EventResult> getWinner(Long sessionKey);
 }

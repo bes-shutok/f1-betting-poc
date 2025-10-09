@@ -1,7 +1,6 @@
 package f1.betting.poc.provider.openf1.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
@@ -10,9 +9,8 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SessionRawDto {
-	private String meetingKey;
 
-	private String sessionKey;
+	private Long sessionKey;
 
 	private String location;
 
@@ -21,8 +19,6 @@ public class SessionRawDto {
 	private String sessionName;
 
 	private String countryName;
-
-	private String circuitShortName;
 
 	private String dateStart;
 

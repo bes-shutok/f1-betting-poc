@@ -21,7 +21,7 @@ public class OpenF1CacheProxy {
 	private String baseUrl;
 
 	@Cacheable("driversBySession")
-	public List<DriverRawDto> getDriversForSession(String sessionKey) {
+	public List<DriverRawDto> getDriversForSession(Long sessionKey) {
 		String url = baseUrl + "/drivers?session_key=" + sessionKey;
 		log.info("Calling drivers API: {}", url);
 		DriverRawDto[] response = restTemplate.getForObject(url, DriverRawDto[].class);

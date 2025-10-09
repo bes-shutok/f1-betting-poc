@@ -33,7 +33,7 @@ public class EventController {
 	}
 
 	@GetMapping("/{sessionKey}/winner")
-	public ResponseEntity<EventResult> getWinner(@PathVariable String sessionKey) {
+	public ResponseEntity<EventResult> getWinner(@PathVariable Long sessionKey) {
 		return service.getWinner(sessionKey)
 				.map(ResponseEntity::ok)
 				.orElse(ResponseEntity.notFound().build());

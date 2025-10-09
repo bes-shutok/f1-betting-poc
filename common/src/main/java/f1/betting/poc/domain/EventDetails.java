@@ -9,12 +9,12 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EventDetails {
-	private String sessionKey;
+	private Long sessionKey;
 	private String sessionName;
 	private String countryName;
-	private String circuitName;
 	private OffsetDateTime dateStart;
 	private OffsetDateTime dateEnd;
+	private Integer year;
 	private String sessionType;
 
 	/**

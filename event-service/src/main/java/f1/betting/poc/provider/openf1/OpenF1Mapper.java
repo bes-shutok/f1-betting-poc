@@ -18,7 +18,6 @@ public interface OpenF1Mapper {
 	@Mapping(source = "sessionKey", target = "sessionKey")
 	@Mapping(source = "sessionName", target = "sessionName")
 	@Mapping(source = "countryName", target = "countryName")
-	@Mapping(source = "circuitShortName", target = "circuitName")
 	@Mapping(source = "sessionType", target = "sessionType")
 	@Mapping(source = "dateStart", target = "dateStart", qualifiedByName = "parseOffsetDateTime")
 	@Mapping(source = "dateEnd", target = "dateEnd", qualifiedByName = "parseOffsetDateTime")

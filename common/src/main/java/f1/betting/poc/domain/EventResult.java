@@ -8,8 +8,8 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EventResult {
-	private String sessionKey;
+	private Long sessionKey;
 	private boolean finished;
-	private Integer winnerDriverNumber; // null when not finished
+	private Long winnerDriverNumber; // null when not finished
 	private OffsetDateTime providerFetchedAt;
 }

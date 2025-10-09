@@ -71,12 +71,11 @@ class OpenF1ProviderAdapterTest {
     void getEvents_shouldCallSessionsEndpointAndEnrichWithDrivers() {
         // Arrange with Faker for dynamic but consistent data
         Faker faker = new Faker();
-        String sessionKey1 = String.valueOf(faker.number().numberBetween(1, Integer.MAX_VALUE));
-        String sessionKey2 = String.valueOf(faker.number().numberBetween(1, Integer.MAX_VALUE));
+        Long sessionKey1 = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
+        Long sessionKey2 = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
         String sessionName1 = "Session-" + faker.lorem().word();
         String sessionName2 = "Session-" + faker.lorem().word();
         String country = faker.country().name();
-        String circuit = "Circuit-" + faker.lorem().word();
         String sessionType1 = "Type-" + faker.lorem().word();
         String sessionType2 = "Type-" + faker.lorem().word();
         int year = faker.number().numberBetween(1950, 2100);
@@ -86,14 +85,12 @@ class OpenF1ProviderAdapterTest {
         s1.setSessionKey(sessionKey1);
         s1.setSessionName(sessionName1);
         s1.setCountryName(country);
-        s1.setCircuitShortName(circuit);
         s1.setSessionType(sessionType1);
 
         SessionRawDto s2 = new SessionRawDto();
         s2.setSessionKey(sessionKey2);
         s2.setSessionName(sessionName2);
         s2.setCountryName(country);
-        s2.setCircuitShortName(circuit);
         s2.setSessionType(sessionType2);
 
         SessionRawDto[] sessions = {s1, s2};
@@ -104,14 +101,12 @@ class OpenF1ProviderAdapterTest {
                 .sessionKey(sessionKey1)
                 .sessionName(sessionName1)
                 .countryName(country)
-                .circuitName(circuit)
                 .sessionType(sessionType1)
                 .build();
         EventDetails ed2 = EventDetails.builder()
                 .sessionKey(sessionKey2)
                 .sessionName(sessionName2)
                 .countryName(country)
-                .circuitName(circuit)
                 .sessionType(sessionType2)
                 .build();
         given(mapper.toEventDetails(s1)).willReturn(ed1);
@@ -132,8 +127,8 @@ class OpenF1ProviderAdapterTest {
         given(cacheProxy.getDriversForSession(sessionKey2)).willReturn(Collections.singletonList(d1));
 
         // Mapper for drivers -> domain drivers; odds will be assigned in adapter later
-        Driver dd1 = Driver.builder().driverNumber(d1.getDriverNumber()).fullName(d1.getFullName()).teamName(d1.getTeamName()).odds(0).build();
-        Driver dd2 = Driver.builder().driverNumber(d2.getDriverNumber()).fullName(d2.getFullName()).teamName(d2.getTeamName()).odds(0).build();
+        Driver dd1 = Driver.builder().driverNumber(d1.getDriverNumber().longValue()).fullName(d1.getFullName()).teamName(d1.getTeamName()).odds(0).build();
+        Driver dd2 = Driver.builder().driverNumber(d2.getDriverNumber().longValue()).fullName(d2.getFullName()).teamName(d2.getTeamName()).odds(0).build();
         given(mapper.toDriverList(Arrays.asList(d1, d2))).willReturn(Arrays.asList(dd1, dd2));
         given(mapper.toDriverList(Collections.singletonList(d1))).willReturn(Collections.singletonList(dd1));
 
@@ -174,16 +169,16 @@ class OpenF1ProviderAdapterTest {
     void getWinner_shouldReturnWinnerForRandomSessionKey_usingFaker() {
         // Arrange a random positive session key using Faker
         Faker faker = new Faker();
-        String randomSessionKey = String.valueOf(faker.number().numberBetween(1, Integer.MAX_VALUE));
+        Long randomSessionKey = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
 
         ResultRawDto r1 = new ResultRawDto();
         r1.setPosition(2);
-        r1.setDriverNumber(81);
+        r1.setDriverNumber(81L);
         r1.setSessionKey(randomSessionKey);
 
         ResultRawDto r2 = new ResultRawDto();
         r2.setPosition(1);
-        r2.setDriverNumber(1);
+        r2.setDriverNumber(1L);
         r2.setSessionKey(randomSessionKey);
 
         ResultRawDto[] results = {r1, r2};
@@ -213,10 +208,10 @@ class OpenF1ProviderAdapterTest {
     void getWinner_whenNoData_shouldReturnEmpty() {
         // null response
         given(restTemplate.getForObject(anyString(), eq(ResultRawDto[].class))).willReturn( null );
-        assertThat(adapter.getWinner("9999")).isEmpty();
+        assertThat(adapter.getWinner(9999L)).isEmpty();
 
         // empty array response
         given(restTemplate.getForObject(anyString(), eq(ResultRawDto[].class))).willReturn(new ResultRawDto[]{});
-        assertThat(adapter.getWinner("9999")).isEmpty();
+        assertThat(adapter.getWinner(9999L)).isEmpty();
     }
 }
