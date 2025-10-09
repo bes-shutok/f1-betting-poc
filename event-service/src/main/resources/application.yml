@@ -1,0 +1,20 @@
+# application.yml
+server:
+  port: 8081
+
+spring:
+  cache:
+    type: caffeine
+
+app:
+  f1:
+    base-url: https://api.openf1.org/v1
+  cache:
+    ttl-minutes: 60
+
+resilience4j.ratelimiter:
+  instances:
+    openf1:
+      limit-for-period: 3
+      limit-refresh-period: 1s
+      timeout-duration: 2s         # Wait time if limit reached
