@@ -27,5 +27,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:postgresql")
 
+    testImplementation("net.datafaker:datafaker:2.3.1")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
