@@ -3,6 +3,7 @@ package f1.betting.poc;
 import f1.betting.poc.domain.EventDetails;
 import f1.betting.poc.domain.EventResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,6 +12,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/events")
 @RequiredArgsConstructor
+@Slf4j
 public class EventController {
 
 	private final EventService service;
@@ -30,6 +32,12 @@ public class EventController {
 		response.put("total", events.size());
 		response.put("items", events);
 		return ResponseEntity.ok(response);
+	}
+
+	@GetMapping("/{sessionKey}")
+	public ResponseEntity<EventDetails> getEvent(@PathVariable Long sessionKey) {
+		log.info( "Getting details of the event with id {}", sessionKey );
+		return ResponseEntity.ok( service.getEvent(sessionKey) );
 	}
 
 	@GetMapping("/{sessionKey}/winner")

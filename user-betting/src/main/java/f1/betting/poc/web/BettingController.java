@@ -20,11 +20,8 @@ public class BettingController {
 	}
 
 	@PostMapping("/events/{eventId}/settle")
-	public ResponseEntity<Void> settleEvent(
-			@PathVariable Long eventId,
-			@RequestBody SettleEventRequest request
-	) {
-		bettingService.settleEvent(eventId, request.winningDriverId());
+	public ResponseEntity<Void> settleEvent(@PathVariable Long eventId) {
+		bettingService.settleEvent(eventId );
 		return ResponseEntity.ok().build();
 	}
 }

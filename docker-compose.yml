@@ -43,6 +43,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SERVER_PORT: 8080
       JAVA_OPTS: -Xms256m -Xmx512m
+      EVENT_SERVICE_BASE_URL: http://event-service:8081
     ports:
       - "8080:8080"
     restart: on-failure

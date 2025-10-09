@@ -21,12 +21,12 @@ public class SecurityConfig {
 				.csrf(csrf -> csrf.disable()) // Disable CSRF for APIs
 				.authorizeHttpRequests(auth -> auth
 						// Public endpoints
-						.requestMatchers("/api/events").permitAll()
 						.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-
-						// Local-only endpoint
+						// Local-only endpoint (must be before broader permits)
 						.requestMatchers("/api/events/*/winner").access(localhostOnly())
-
+						// Public read-only event endpoints
+						.requestMatchers("/api/events").permitAll()
+						.requestMatchers("/api/events/*").permitAll()
 						// Default: deny all others
 						.anyRequest().denyAll()
 				)

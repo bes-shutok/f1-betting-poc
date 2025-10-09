@@ -23,6 +23,13 @@ public class EventService {
 		return paginate(all, page, size);
 	}
 
+	/**
+	 * Get a single event by session key, including drivers/odds.
+	 */
+	public EventDetails getEvent(Long sessionKey) {
+		return adapter.getEvent(sessionKey);
+	}
+
 	private List<EventDetails> paginate(List<EventDetails> list, int page, int size) {
 		if (list.isEmpty()) return list;
 		int from = page * size;

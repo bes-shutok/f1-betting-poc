@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProviderAdapter {
+	EventDetails  getEvent(Long eventKey);
 	List<EventDetails>  getEvents(String sessionType, String country, Integer year);
 	Optional<EventResult> getWinner(Long sessionKey);
 }

@@ -33,6 +33,37 @@ public class OpenF1ProviderAdapter implements ProviderAdapter {
 	@Value("${openf1.base-url:https://api.openf1.org/v1}")
 	private String baseUrl;
 
+	@Override
+	@Cacheable(value = "eventById", key = "#eventKey")
+	public EventDetails getEvent( Long eventKey ) {
+		String url = baseUrl + "/sessions";
+		StringBuilder sb = new StringBuilder(url).append("?");
+		sb.append("session_key=").append(eventKey);
+
+		String fullUrl = sb.toString();
+		log.info("Calling event API: {}", fullUrl);
+		SessionRawDto[] sessions = restTemplate.getForObject(fullUrl, SessionRawDto[].class);
+		if (sessions == null || sessions.length == 0) return null;
+		SessionRawDto session = sessions[0];
+
+		RateLimiter rateLimiter = rateLimiterRegistry.rateLimiter("openf1");
+		EventDetails ed = mapper.toEventDetails(session);
+
+		// Wrap driver fetch in a rate-limited supplier
+		rateLimiter.acquirePermission();
+		Supplier<List<DriverRawDto>> supplier = RateLimiter.decorateSupplier(rateLimiter,
+				() -> cacheProxy.getDriversForSession(session.getSessionKey()));
+
+		List<DriverRawDto> driverDtos = supplier.get(); // will respect rate limit
+		List<Driver> drivers = mapper.toDriverList(driverDtos)
+				.stream()
+				.peek(d -> d.setOdds(ThreadLocalRandom.current().nextInt(2, 5)))
+				.collect(Collectors.toList());
+
+		ed.setDrivers(drivers);
+		return ed;
+	}
+
 	/**
 	 * Fetch sessions and enrich with driver data.
 	 */

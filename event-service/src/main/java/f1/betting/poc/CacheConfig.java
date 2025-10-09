@@ -26,7 +26,7 @@ public class CacheConfig {
 
 	@Bean
 	public CacheManager cacheManager(Caffeine<Object, Object> caffeine) {
-		CaffeineCacheManager manager = new CaffeineCacheManager("driversBySession","events");
+		CaffeineCacheManager manager = new CaffeineCacheManager("driversBySession","events","eventById");
 		manager.setCaffeine(caffeine);
 		return manager;
 	}

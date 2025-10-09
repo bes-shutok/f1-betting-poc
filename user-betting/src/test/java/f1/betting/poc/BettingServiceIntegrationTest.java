@@ -129,8 +129,13 @@ class BettingServiceIntegrationTest {
         BetResponse b1 = bettingService.placeBet(new PlaceBetRequest(u1.getId(), eventId, winDriver, amount1));
         BetResponse b2 = bettingService.placeBet(new PlaceBetRequest(u2.getId(), eventId, loseDriver, amount2));
 
+        // Stub winner endpoint for settlement
+        EventResult winner = EventResult.builder().sessionKey(eventId).finished(true).winnerDriverNumber(winDriver).build();
+        given(restTemplate.getForObject("http://localhost:8081/api/events/" + eventId + "/winner", EventResult.class))
+                .willReturn(winner);
+
         // Act: settle
-        bettingService.settleEvent(eventId, winDriver);
+        bettingService.settleEvent(eventId);
 
         // Assert: bets updated
         Bet bet1 = betRepository.findById(b1.betId()).orElseThrow();
@@ -318,6 +323,41 @@ class BettingServiceIntegrationTest {
         assertThat(bets.get(0).getUser().getId()).isEqualTo(user.getId());
         assertThat(bets.get(0).getAmountEur()).isEqualTo(amount);
         assertThat(bets.get(0).getDriverId()).isEqualTo(driverId);
+    }
+
+    @Test
+    void settleEvent_whenNoBets_shouldPersistOutcome_andSetEventSettled() {
+        // Arrange: create an OPEN historical event without any bets
+        Long eventId = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
+        Long winningDriverId = (long) faker.number().numberBetween(1, 99);
+
+        HistoricalEvent he = new HistoricalEvent();
+        he.setEventId(eventId);
+        he.setEventName("Race-" + faker.lorem().word());
+        he.setCountry(faker.country().name());
+        he.setStatus(EventStatus.OPEN);
+        historicalEventRepository.save(he);
+
+        // Ensure no bets exist for this event
+        assertThat(betRepository.findByEventId(eventId)).isEmpty();
+
+        // Stub winner endpoint for settlement
+        EventResult winner = EventResult.builder()
+                .sessionKey(eventId)
+                .finished(true)
+                .winnerDriverNumber(winningDriverId)
+                .build();
+        given(restTemplate.getForObject("http://localhost:8081/api/events/" + eventId + "/winner", EventResult.class))
+                .willReturn(winner);
+
+        // Act: settle
+        bettingService.settleEvent(eventId);
+
+        // Assert: still no bets, but outcome persisted and event settled
+        assertThat(betRepository.findByEventId(eventId)).isEmpty();
+        EventOutcome outcome = eventOutcomeRepository.findById(eventId).orElseThrow();
+        assertThat(outcome.getWinningDriverId()).isEqualTo(winningDriverId);
+        assertThat(historicalEventRepository.findById(eventId).orElseThrow().getStatus()).isEqualTo(EventStatus.SETTLED);
     }
 
     private User newUser() {

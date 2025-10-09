@@ -1,10 +1,10 @@
 package f1.betting.poc;
 
-import f1.betting.poc.domain.*;
 import f1.betting.poc.web.BetResponse;
 import f1.betting.poc.web.PlaceBetRequest;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,8 +12,19 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
+import f1.betting.poc.domain.EventDetails;
+import f1.betting.poc.domain.Driver;
+import f1.betting.poc.domain.EventStatus;
+import f1.betting.poc.domain.HistoricalEvent;
+import f1.betting.poc.domain.User;
+import f1.betting.poc.domain.BetStatus;
+import f1.betting.poc.domain.Bet;
+import f1.betting.poc.domain.EventOutcome;
+import f1.betting.poc.domain.EventResult;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BettingService {
 
 	private final UserRepository userRepository;
@@ -22,7 +33,7 @@ public class BettingService {
 	private final EventOutcomeRepository eventOutcomeRepository;
 	private final RestTemplate restTemplate;
 
-	@Value("${event-service.base-url:http://localhost:8081}")
+	@Value("${event.service.base-url:http://localhost:8081}")
 	private String eventServiceBaseUrl;
 
 	/**
@@ -36,6 +47,8 @@ public class BettingService {
 				.filter(d -> d.getDriverNumber().equals(request.driverId()))
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("Driver not found in event"));
+
+		log.info( "Creating a bet for driver {} in the event {}", driver.getDriverNumber(), eventDetails.getSessionKey() );
 
 		if (request.amountEur() == null || request.amountEur() <= 0) {
 			throw new IllegalArgumentException("Bet must be positive");
@@ -92,7 +105,7 @@ public class BettingService {
 	 * Trigger event settlement
 	 */
 	@Transactional
-	public void settleEvent(Long eventId, Long winningDriverId) {
+	public void settleEvent(Long eventId) {
 		// Lock event for settlement
 		HistoricalEvent event = historicalEventRepository.findById(eventId)
 				.orElseThrow(() -> new IllegalArgumentException("Event not found"));
@@ -100,6 +113,10 @@ public class BettingService {
 			throw new IllegalStateException("Event is already locked or settled");
 		}
 		event.setStatus(EventStatus.LOCKED);
+		log.info( "Event {} is locked for settling", event.getEventId() );
+
+		// Fetch winner from event-service
+		Long winningDriverId = fetchWinnerDriverId(eventId);
 
 		// Fetch bets
 		List<Bet> bets = betRepository.findByEventId(eventId);
@@ -124,7 +141,21 @@ public class BettingService {
 
 		// Set event as settled
 		event.setStatus(EventStatus.SETTLED);
+		log.info( "Event {} is settled", event.getEventId() );
 		historicalEventRepository.save(event);
+	}
+
+	private Long fetchWinnerDriverId(@NotNull Long eventId) {
+		String url = eventServiceBaseUrl + "/api/events/" + eventId + "/winner";
+		try {
+			EventResult result = restTemplate.getForObject(url, EventResult.class);
+			if (result == null || !result.isFinished() || result.getWinnerDriverNumber() == null) {
+				throw new IllegalStateException("Winner not available for event " + eventId);
+			}
+			return result.getWinnerDriverNumber();
+		} catch (Exception ex) {
+			throw new IllegalStateException("Failed to fetch winner for event " + eventId, ex);
+		}
 	}
 
 	private EventDetails fetchEventFromEventService(@NotNull Long eventId) {

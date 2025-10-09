@@ -85,6 +85,35 @@ Response: a page envelope
 Notes:
 - For each event, the driver market is included with odds randomly assigned in {2,3,4} for this proof-of-concept.
 
+### GET /api/events/{sessionKey}
+
+Example:
+GET http://localhost:8081/api/events/9134
+Response:
+{
+  "session_key": 9134,
+  "session_name": "Practice 1",
+  "country_name": "Belgium",
+  "date_start": 1690543800,
+  "date_end": 1690547400,
+  "year": 2023,
+  "session_type": "Practice",
+  "drivers": [
+    {
+    "driver_number": 1,
+    "full_name": "Max VERSTAPPEN",
+    "team_name": "Red Bull Racing",
+    "odds": 3
+    },
+    {
+    "driver_number": 2,
+    "full_name": "Logan SARGEANT",
+    "team_name": "Williams",
+    "odds": 4
+    },...
+  ]
+}
+
 ### GET /api/events/{sessionKey}/winner
 Returns the event winner if available.
 - 200 OK with body EventResult when data is available
@@ -97,7 +126,7 @@ Example:
 GET http://localhost:8081/api/events/9134/winner
 Response:
 {
-  "sessionKey": 9134,
+  "session_key": 9134,
   "finished": true,
   "winnerDriverNumber": 1,
   "providerFetchedAt": "2023-07-29T16:40:12Z"
@@ -123,10 +152,10 @@ Validations:
 
 Response body:
 {
-  "bet_id": 987,
+  "bet_id": 1,
   "event_id": 9134,
   "driver_id": 1,
-  "amount_cents": 25,
+  "amount_eur": 10,
   "odds": 3,
   "status": "PENDING"
 }

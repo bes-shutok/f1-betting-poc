@@ -214,4 +214,62 @@ class OpenF1ProviderAdapterTest {
         given(restTemplate.getForObject(anyString(), eq(ResultRawDto[].class))).willReturn(new ResultRawDto[]{});
         assertThat(adapter.getWinner(9999L)).isEmpty();
     }
+
+    @Test
+    void getEvent_shouldCallSingleSessionEndpointAndEnrichDrivers_usingFaker() {
+        // Arrange
+        Faker faker = new Faker();
+        Long sessionKey = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
+        String sessionName = "Session-" + faker.lorem().word();
+        String country = faker.country().name();
+        String sessionType = "Type-" + faker.lorem().word();
+
+        // Provider returns a single session object
+        SessionRawDto s = new SessionRawDto();
+        s.setSessionKey(sessionKey);
+        s.setSessionName(sessionName);
+        s.setCountryName(country);
+        s.setSessionType(sessionType);
+        given(restTemplate.getForObject(anyString(), eq(SessionRawDto[].class))).willReturn(new SessionRawDto[]{s});
+
+        // Mapper for EventDetails
+        EventDetails ed = EventDetails.builder()
+                .sessionKey(sessionKey)
+                .sessionName(sessionName)
+                .countryName(country)
+                .sessionType(sessionType)
+                .build();
+        given(mapper.toEventDetails(s)).willReturn(ed);
+
+        // Drivers via cache proxy
+        DriverRawDto d1 = new DriverRawDto();
+        d1.setDriverNumber(faker.number().numberBetween(1, 99));
+        d1.setFullName(faker.name().fullName());
+        d1.setTeamName("Team-" + faker.team().name());
+
+        DriverRawDto d2 = new DriverRawDto();
+        d2.setDriverNumber(faker.number().numberBetween(1, 99));
+        d2.setFullName(faker.name().fullName());
+        d2.setTeamName("Team-" + faker.team().name());
+
+        given(cacheProxy.getDriversForSession(sessionKey)).willReturn(Arrays.asList(d1, d2));
+
+        Driver dd1 = Driver.builder().driverNumber(d1.getDriverNumber().longValue()).fullName(d1.getFullName()).teamName(d1.getTeamName()).odds(0).build();
+        Driver dd2 = Driver.builder().driverNumber(d2.getDriverNumber().longValue()).fullName(d2.getFullName()).teamName(d2.getTeamName()).odds(0).build();
+        given(mapper.toDriverList(Arrays.asList(d1, d2))).willReturn(Arrays.asList(dd1, dd2));
+
+        // Act
+        EventDetails out = adapter.getEvent(sessionKey);
+
+        // Assert
+        assertThat(out).isNotNull();
+        assertThat(out.getSessionKey()).isEqualTo(sessionKey);
+        assertThat(out.getDrivers()).hasSize(2);
+        out.getDrivers().forEach(dr -> assertThat(dr.getOdds()).isBetween(2, 4));
+
+        // Verify URL formation
+        verify(restTemplate).getForObject(urlCaptor.capture(), eq(SessionRawDto[].class));
+        String calledUrl = urlCaptor.getValue();
+        assertThat(calledUrl).isEqualTo("http://base/sessions?session_key=" + sessionKey);
+    }
 }

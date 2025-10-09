@@ -6,4 +6,10 @@ spring:
   docker:
     compose:
       enabled: false
-#      file: ../docker-compose.yml
+  flyway:
+    enabled: true
+    locations: classpath:/migration
+
+event:
+  service:
+    base-url: http://localhost:8081

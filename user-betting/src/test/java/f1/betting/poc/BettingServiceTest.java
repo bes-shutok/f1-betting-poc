@@ -175,13 +175,18 @@ class BettingServiceTest {
 
         given(betRepository.findByEventId(eventId)).willReturn(List.of(b1, b2));
 
+        // Winner fetched from event-service
+        EventResult winner = EventResult.builder().sessionKey(eventId).finished(true).winnerDriverNumber(winningDriverId).build();
+        given(restTemplate.getForObject("http://localhost:8081/api/events/" + eventId + "/winner", EventResult.class))
+                .willReturn(winner);
+
         // Echo saves
         given(betRepository.saveAll(anyList())).willAnswer(inv -> inv.getArgument(0));
         given(eventOutcomeRepository.save(any(EventOutcome.class))).willAnswer(inv -> inv.getArgument(0));
         given(historicalEventRepository.save(any(HistoricalEvent.class))).willAnswer(inv -> inv.getArgument(0));
 
         // Act
-        service.settleEvent(eventId, winningDriverId);
+        service.settleEvent(eventId);
 
         // Assert bets and balances
         assertThat(b1.getStatus()).isEqualTo(BetStatus.WON);
