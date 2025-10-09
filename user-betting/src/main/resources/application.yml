@@ -1,0 +1,9 @@
+# application.yml
+server:
+  port: 8080
+
+spring:
+  docker:
+    compose:
+      enabled: false
+#      file: ../docker-compose.yml

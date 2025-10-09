@@ -1,14 +1,18 @@
 # ---------- build stage ----------
 FROM gradle:8.6-jdk21 AS builder
 WORKDIR /home/gradle/project
-# copy gradle wrapper and build files first for caching
+
+# Copy Gradle wrapper and root build files for multi-module build caching
 COPY gradle gradle
 COPY gradlew .
-COPY build.gradle.kts settings.gradle.kts ./
-# copy sources
-COPY src src
-# Build the boot jar (no daemon)
-RUN ./gradlew bootJar -x test --no-daemon
+COPY settings.gradle.kts build.gradle.kts ./
+
+# Copy only the modules we need to build user-betting (and its dependency 'common')
+COPY common ./common
+COPY user-betting ./user-betting
+
+# Build only the user-betting module boot jar (skip tests for faster image build)
+RUN ./gradlew :user-betting:bootJar -x test --no-daemon
 
 # ---------- runtime stage ----------
 FROM eclipse-temurin:21-jre-jammy
@@ -20,7 +24,7 @@ RUN addgroup --system ${APP_USER} && adduser --system --ingroup ${APP_USER} ${AP
 
 WORKDIR ${APP_HOME}
 # copy jar
-COPY --from=builder /home/gradle/project/build/libs/*.jar app.jar
+COPY --from=builder /home/gradle/project/user-betting/build/libs/*.jar app.jar
 
 # expose port
 EXPOSE 8080

@@ -28,8 +28,10 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    build: ./user-betting
+  user-betting:
+    build:
+      context: .
+      dockerfile: user-betting/Dockerfile
     depends_on:
       - db
     environment:
@@ -38,7 +40,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: betting_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: "none"     # let Flyway handle migrations
       SPRING_JPA_SHOW_SQL: "false"
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8080
       JAVA_OPTS: -Xms256m -Xmx512m
     ports:
       - "8080:8080"

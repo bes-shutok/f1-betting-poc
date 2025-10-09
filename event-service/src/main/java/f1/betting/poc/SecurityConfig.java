@@ -20,8 +20,9 @@ public class SecurityConfig {
 		http
 				.csrf(csrf -> csrf.disable()) // Disable CSRF for APIs
 				.authorizeHttpRequests(auth -> auth
-						// Public endpoint
+						// Public endpoints
 						.requestMatchers("/api/events").permitAll()
+						.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
 						// Local-only endpoint
 						.requestMatchers("/api/events/*/winner").access(localhostOnly())

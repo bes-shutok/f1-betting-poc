@@ -14,11 +14,19 @@ To run tests for all modules use following command
 
 ## with Docker
 1. Start docker service
-2. Build the Spring Boot JAR from root ``./gradlew :event-service:bootJar``
+2. Build the Spring Boot JAR from root `./gradlew :event-service:bootJar`
 3. Run the container `docker-compose up --build event-service`
 4. verify it works with: http://localhost:8081/api/events?country=Belgium and http://localhost:8081/api/events/9134/winner
 
-## Run all containers
+
+
+# Running user-betting service locally
+## with Docker
+1. Start docker service
+2. Run the container `docker-compose up --build user-betting`
+3. verify it works with: http://localhost:8081/api/events?country=Belgium and http://localhost:8081/api/events/9134/winner
+5. 
+# Run all containers
 docker compose up
 
 
