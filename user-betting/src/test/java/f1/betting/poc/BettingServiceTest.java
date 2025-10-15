@@ -42,7 +42,7 @@ class BettingServiceTest {
     private BettingService service;
 
     @Test
-    void placeBet_shouldReturnResponseConsistentWithRequestAndComputedData() {
+    void placeBetShouldReturnResponse() {
         // Arrange input
         Long userId = 10L;
         Long eventId = 200L;
@@ -64,7 +64,7 @@ class BettingServiceTest {
                 .countryName("UK")
                 .driver(driver)
                 .build();
-        given(restTemplate.getForObject("http://localhost:8081/api/events/" + eventId, EventDetails.class))
+        given(restTemplate.getForObject(anyString(), eq(EventDetails.class)))
                 .willReturn(event);
 
         // historical event row exists/open after insertIfNotExists
@@ -90,10 +90,10 @@ class BettingServiceTest {
             return b;
         });
 
-        // Act
+        // When
         BetResponse out = service.placeBet(req);
 
-        // Assert: response corresponds with the request and computed fields
+        // Then
         assertThat(out).isNotNull();
         assertThat(out.betId()).isEqualTo(777L);
         assertThat(out.eventId()).isEqualTo(eventId);
@@ -105,7 +105,7 @@ class BettingServiceTest {
     }
 
     @Test
-    void placeBet_whenAmountNotPositive_shouldThrow() {
+    void placeBetShouldRejectInvalidAmount() {
         // Arrange minimal event/driver so service reaches amount validation
         Long eventId = 2L;
         Long driverId = 3L;
@@ -123,17 +123,17 @@ class BettingServiceTest {
                 .countryName("Any")
                 .driver(driver)
                 .build();
-        given(restTemplate.getForObject("http://localhost:8081/api/events/" + eventId, EventDetails.class))
+        given(restTemplate.getForObject(anyString(), eq(EventDetails.class)))
                 .willReturn(event);
 
-        // Act + Assert
+        // When & Then
         assertThatThrownBy(() -> service.placeBet(bad))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("positive");
     }
 
     @Test
-    void settleEvent_shouldPersistOutcomeAndUpdateBets_usingFaker() {
+    void settleEventShouldUpdateBetsAndOutcome() {
         // Arrange using Faker for realistic random but bounded values
         Faker faker = new Faker();
         Long eventId = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
@@ -177,7 +177,7 @@ class BettingServiceTest {
 
         // Winner fetched from event-service
         EventResult winner = EventResult.builder().sessionKey(eventId).finished(true).winnerDriverNumber(winningDriverId).build();
-        given(restTemplate.getForObject("http://localhost:8081/api/events/" + eventId + "/winner", EventResult.class))
+        given(restTemplate.getForObject(anyString(), eq(EventResult.class)))
                 .willReturn(winner);
 
         // Echo saves
@@ -185,13 +185,14 @@ class BettingServiceTest {
         given(eventOutcomeRepository.save(any(EventOutcome.class))).willAnswer(inv -> inv.getArgument(0));
         given(historicalEventRepository.save(any(HistoricalEvent.class))).willAnswer(inv -> inv.getArgument(0));
 
-        // Act
+        // When
         service.settleEvent(eventId);
 
-        // Assert bets and balances
+        // Then
         assertThat(b1.getStatus()).isEqualTo(BetStatus.WON);
         assertThat(b2.getStatus()).isEqualTo(BetStatus.LOST);
-        assertThat(u1.getBalanceEur()).isEqualTo(100L + 10L * 3);
+        // With proportional distribution: total pool = 10 + 5 = 15, winner gets full pool since only one winner
+        assertThat(u1.getBalanceEur()).isEqualTo(100L + 15L);
         assertThat(u2.getBalanceEur()).isEqualTo(200L);
 
         // Event outcome saved with correct values

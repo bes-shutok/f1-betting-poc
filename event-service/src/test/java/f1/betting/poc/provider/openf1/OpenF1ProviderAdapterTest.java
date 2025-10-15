@@ -10,6 +10,7 @@ import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -68,8 +69,9 @@ class OpenF1ProviderAdapterTest {
     }
 
     @Test
-    void getEvents_shouldCallSessionsEndpointAndEnrichWithDrivers() {
-        // Arrange with Faker for dynamic but consistent data
+    @DisplayName("Should call sessions endpoint and enrich events with drivers and odds")
+    void getEventsShouldCallSessionsEndpointAndEnrichWithDrivers() {
+        // Given
         Faker faker = new Faker();
         Long sessionKey1 = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
         Long sessionKey2 = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
@@ -132,10 +134,10 @@ class OpenF1ProviderAdapterTest {
         given(mapper.toDriverList(Arrays.asList(d1, d2))).willReturn(Arrays.asList(dd1, dd2));
         given(mapper.toDriverList(Collections.singletonList(d1))).willReturn(Collections.singletonList(dd1));
 
-        // Act
+        // When
         List<EventDetails> out = adapter.getEvents(sessionType1, country, year);
 
-        // Assert size and mapping stays consistent with source
+        // Then
         assertThat(out).hasSize(2);
         assertThat(out.get(0).getSessionKey()).isEqualTo(sessionKey1);
         assertThat(out.get(1).getSessionKey()).isEqualTo(sessionKey2);
@@ -154,20 +156,22 @@ class OpenF1ProviderAdapterTest {
     }
 
     @Test
-    void getEvents_whenRemoteReturnsNull_shouldReturnEmptyList() {
-        // Arrange
+    @DisplayName("Should return empty list when remote API returns null")
+    void getEventsShouldReturnEmptyListWhenRemoteReturnsNull() {
+        // Given
         given(restTemplate.getForObject(anyString(), eq(SessionRawDto[].class))).willReturn(null);
 
-        // Act
+        // When
         List<EventDetails> out = adapter.getEvents(null, null, null);
 
-        // Assert
+        // Then
         assertThat(out).isEmpty();
     }
 
     @Test
-    void getWinner_shouldReturnWinnerForRandomSessionKey_usingFaker() {
-        // Arrange a random positive session key using Faker
+    @DisplayName("Should return winner for session key with position 1 as winner")
+    void getWinnerShouldReturnWinnerForRandomSessionKey() {
+        // Given
         Faker faker = new Faker();
         Long randomSessionKey = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
 
@@ -186,10 +190,10 @@ class OpenF1ProviderAdapterTest {
 
         OffsetDateTime beforeCall = OffsetDateTime.now().minusMinutes(1);
 
-        // Act
+        // When
         Optional<EventResult> maybe = adapter.getWinner(randomSessionKey);
 
-        // Assert format and values based on random session key
+        // Then
         assertThat(maybe).isPresent();
         EventResult er = maybe.get();
         assertThat(er.getSessionKey()).isEqualTo(randomSessionKey);
@@ -205,19 +209,25 @@ class OpenF1ProviderAdapterTest {
     }
 
     @Test
-    void getWinner_whenNoData_shouldReturnEmpty() {
-        // null response
-        given(restTemplate.getForObject(anyString(), eq(ResultRawDto[].class))).willReturn( null );
+    @DisplayName("Should return empty optional when no race results are available")
+    void getWinnerShouldReturnEmptyWhenNoData() {
+        // Given null response
+        given(restTemplate.getForObject(anyString(), eq(ResultRawDto[].class))).willReturn(null);
+
+        // When & Then
         assertThat(adapter.getWinner(9999L)).isEmpty();
 
-        // empty array response
+        // Given empty array response
         given(restTemplate.getForObject(anyString(), eq(ResultRawDto[].class))).willReturn(new ResultRawDto[]{});
+
+        // When & Then
         assertThat(adapter.getWinner(9999L)).isEmpty();
     }
 
     @Test
-    void getEvent_shouldCallSingleSessionEndpointAndEnrichDrivers_usingFaker() {
-        // Arrange
+    @DisplayName("Should call single session endpoint and enrich with drivers and odds")
+    void getEventShouldCallSingleSessionEndpointAndEnrichDrivers() {
+        // Given
         Faker faker = new Faker();
         Long sessionKey = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
         String sessionName = "Session-" + faker.lorem().word();
@@ -258,10 +268,10 @@ class OpenF1ProviderAdapterTest {
         Driver dd2 = Driver.builder().driverNumber(d2.getDriverNumber().longValue()).fullName(d2.getFullName()).teamName(d2.getTeamName()).odds(0).build();
         given(mapper.toDriverList(Arrays.asList(d1, d2))).willReturn(Arrays.asList(dd1, dd2));
 
-        // Act
+        // When
         EventDetails out = adapter.getEvent(sessionKey);
 
-        // Assert
+        // Then
         assertThat(out).isNotNull();
         assertThat(out.getSessionKey()).isEqualTo(sessionKey);
         assertThat(out.getDrivers()).hasSize(2);

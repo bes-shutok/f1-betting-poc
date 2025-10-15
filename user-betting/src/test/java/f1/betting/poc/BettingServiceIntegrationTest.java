@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -22,6 +24,7 @@ import static org.mockito.BDDMockito.given;
 
 @SpringBootTest
 @ContextConfiguration(initializers = TestcontainersConfiguration.class)
+@Transactional
 class BettingServiceIntegrationTest {
 
     @Autowired
@@ -46,7 +49,7 @@ class BettingServiceIntegrationTest {
     }
 
     @Test
-    void placeBet_shouldPersistBetAndDebitUser_balanceAndResponseMatch() {
+    void placeBetShouldDebitUser() {
         // Arrange: pick an existing seeded user
         List<User> users = userRepository.findAll();
         assertThat(users).isNotEmpty();
@@ -74,10 +77,10 @@ class BettingServiceIntegrationTest {
 
         PlaceBetRequest req = new PlaceBetRequest(user.getId(), eventId, driverId, amount);
 
-        // Act
+        // When
         BetResponse resp = bettingService.placeBet(req);
 
-        // Assert response fields
+        // Then
         assertThat(resp).isNotNull();
         assertThat(resp.eventId()).isEqualTo(eventId);
         assertThat(resp.driverId()).isEqualTo(driverId);
@@ -99,7 +102,7 @@ class BettingServiceIntegrationTest {
     }
 
     @Test
-    void settleEvent_shouldUpdateStatusesAndBalances_andPersistOutcome() {
+    void settleEventShouldUpdateBalances() {
         // Arrange two users (second may come from seed or we create one)
         List<User> users = userRepository.findAll();
         User u1 = users.get(0);
@@ -134,10 +137,10 @@ class BettingServiceIntegrationTest {
         given(restTemplate.getForObject("http://localhost:8081/api/events/" + eventId + "/winner", EventResult.class))
                 .willReturn(winner);
 
-        // Act: settle
+        // When
         bettingService.settleEvent(eventId);
 
-        // Assert: bets updated
+        // Then
         Bet bet1 = betRepository.findById(b1.betId()).orElseThrow();
         Bet bet2 = betRepository.findById(b2.betId()).orElseThrow();
         assertThat(bet1.getStatus()).isEqualTo(BetStatus.WON);
@@ -160,7 +163,7 @@ class BettingServiceIntegrationTest {
     }
 
     @Test
-    void placeBet_onLockedEvent_shouldFail() {
+    void placeBetOnLockedEventShouldFail() {
         // Arrange
         User user = userRepository.findAll().get(0);
         Long eventId = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
@@ -181,7 +184,7 @@ class BettingServiceIntegrationTest {
 
         PlaceBetRequest req = new PlaceBetRequest(user.getId(), eventId, driverId, 5L);
 
-        // Act + Assert
+        // When & Then
         assertThatThrownBy(() -> bettingService.placeBet(req))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not open");
@@ -191,7 +194,7 @@ class BettingServiceIntegrationTest {
     }
 
     @Test
-    void placeBet_onSettledEvent_shouldFail() {
+    void placeBetOnSettledEventShouldFail() {
         // Arrange
         User user = userRepository.findAll().get(0);
         Long eventId = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
@@ -212,7 +215,7 @@ class BettingServiceIntegrationTest {
 
         PlaceBetRequest req = new PlaceBetRequest(user.getId(), eventId, driverId, 5L);
 
-        // Act + Assert
+        // When & Then
         assertThatThrownBy(() -> bettingService.placeBet(req))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not open");
@@ -222,7 +225,7 @@ class BettingServiceIntegrationTest {
     }
 
     @Test
-    void placeBet_whenAmountExceedsBalance_shouldFail_andNotChangeBalanceOrPersistBet() {
+    void placeBetShouldRejectInsufficientFunds() {
         // Arrange
         User user = userRepository.findAll().get(0);
         long starting = user.getBalanceEur();
@@ -238,7 +241,7 @@ class BettingServiceIntegrationTest {
         long tooMuch = starting + faker.number().numberBetween(1, 1000);
         PlaceBetRequest req = new PlaceBetRequest(user.getId(), eventId, driverId, tooMuch);
 
-        // Act + Assert
+        // When & Then
         assertThatThrownBy(() -> bettingService.placeBet(req))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Insufficient balance");
@@ -250,7 +253,10 @@ class BettingServiceIntegrationTest {
     }
 
     @Test
-    void placeBet_concurrentUpdates_onlyOneDebitPersists_andOtherFails() throws Exception {
+	// NOT_SUPPORTED suspends the outer test transaction to allow concurrent operations
+	// in separate transactions, properly testing race conditions in betting logic
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void placeBetConcurrentUpdatesShouldWork() throws Exception {
         // Arrange
         User user = userRepository.findAll().get(0);
         long starting = user.getBalanceEur();
@@ -330,7 +336,7 @@ class BettingServiceIntegrationTest {
     }
 
     @Test
-    void settleEvent_whenNoBets_shouldPersistOutcome_andSetEventSettled() {
+    void settleEventWithoutBetsShouldWork() {
         // Arrange: create an OPEN historical event without any bets
         Long eventId = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
         Long winningDriverId = (long) faker.number().numberBetween(1, 99);

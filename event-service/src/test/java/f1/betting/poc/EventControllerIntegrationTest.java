@@ -5,6 +5,7 @@ import f1.betting.poc.domain.Driver;
 import f1.betting.poc.domain.EventDetails;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -39,8 +40,9 @@ class EventControllerIntegrationTest {
     }
 
     @Test
-    void getEvents_shouldReturnPagedEnvelope_andItems() throws Exception {
-        // Arrange
+    @DisplayName("Should return paged response with events and driver odds")
+    void getEventsShouldReturnPagedEnvelopeAndItems() throws Exception {
+        // Given
         EventDetails e1 = EventDetails.builder()
                 .sessionKey((long) faker.number().numberBetween(1, Integer.MAX_VALUE))
                 .sessionName("Race-" + faker.lorem().word())
@@ -55,8 +57,11 @@ class EventControllerIntegrationTest {
                 .build();
         given(eventService.getEvents(any(), any(), any(), anyInt(), anyInt())).willReturn(List.of(e1, e2));
 
-        // Act + Assert
-        mockMvc.perform(get("/api/events?page=0&size=2"))
+        // When
+        var result = mockMvc.perform(get("/api/events?page=0&size=2"));
+
+        // Then
+        result
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.page").value(0))
@@ -69,8 +74,9 @@ class EventControllerIntegrationTest {
     }
 
     @Test
-    void getEvent_shouldReturn200_withEventDetails() throws Exception {
-        // Arrange
+    @DisplayName("Should return 200 with single event details and drivers")
+    void getEventShouldReturn200WithEventDetails() throws Exception {
+        // Given
         Long sessionKey = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
         Driver d = Driver.builder().driverNumber(1L).fullName(faker.name().fullName()).teamName("T").odds(3).build();
         EventDetails ed = EventDetails.builder()
@@ -81,8 +87,11 @@ class EventControllerIntegrationTest {
                 .build();
         given(eventService.getEvent(sessionKey)).willReturn(ed);
 
-        // Act + Assert
-        mockMvc.perform(get("/api/events/" + sessionKey))
+        // When
+        var result = mockMvc.perform(get("/api/events/" + sessionKey));
+
+        // Then
+        result
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.session_key").value(sessionKey))
@@ -90,24 +99,32 @@ class EventControllerIntegrationTest {
     }
 
     @Test
-    void getWinner_whenNotFound_shouldReturn404() throws Exception {
-        // Arrange
+    @DisplayName("Should return 404 when winner not found for session")
+    void getWinnerShouldReturn404WhenNotFound() throws Exception {
+        // Given
         Long sessionKey = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
         given(eventService.getWinner(sessionKey)).willReturn(Optional.empty());
 
-        // Act + Assert
-        mockMvc.perform(get("/api/events/" + sessionKey + "/winner"))
+        // When
+        var result = mockMvc.perform(get("/api/events/" + sessionKey + "/winner"));
+
+        // Then
+        result
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void getEvent_whenServiceThrowsIllegalArgument_shouldReturn400_viaGlobalHandler() throws Exception {
-        // Arrange
+    @DisplayName("Should return 400 when service throws IllegalArgumentException")
+    void getEventShouldReturn400WhenServiceThrowsIllegalArgument() throws Exception {
+        // Given
         Long badKey = -1L;
         given(eventService.getEvent(badKey)).willThrow(new IllegalArgumentException("Invalid session key"));
 
-        // Act + Assert
-        mockMvc.perform(get("/api/events/" + badKey))
+        // When
+        var result = mockMvc.perform(get("/api/events/" + badKey));
+
+        // Then
+        result
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value(containsString("Invalid session key")));

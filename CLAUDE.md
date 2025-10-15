@@ -62,3 +62,4 @@ Both services share common DTOs via the `common` module. All identifiers and mon
 - Flyway migrations seed two users: alice and bob (both with 100 EUR)
 - All API fields use snake_case despite Java camelCase naming
 - Event status transitions: OPEN → LOCKED → SETTLED
+- For tests always add @DisplayName where method name is long or missing important details. Also always group test body by //Given //When //Then
