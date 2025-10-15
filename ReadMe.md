@@ -156,10 +156,17 @@ Response body:
 }
 
 ### POST /api/events/{eventId}/settle
-Locks the event, fetches the winner from event-service, updates bets and user balances atomically, persists the outcome, and marks the event as SETTLED.
+Locks the event, fetches the winner from event-service, updates bets and user balances atomically using proportional distribution, persists the outcome, and marks the event as SETTLED.
 
 Path parameter
 - eventId: Long
+
+Settlement Logic
+- Total pool = sum of all bets placed on the event
+- Winning bets receive proportional share of total pool based on their contribution to winning bets
+- Formula: (individualWinningBet / totalWinningBets) × totalPool
+- Amounts are rounded down to whole EUR (any remainder is lost due to rounding)
+- Losing bets are marked as LOST with no payout
 
 Responses
 - 200 OK on success

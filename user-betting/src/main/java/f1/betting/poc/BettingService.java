@@ -121,16 +121,30 @@ public class BettingService {
 		// Fetch bets
 		List<Bet> bets = betRepository.findByEventId(eventId);
 
-		for (Bet bet : bets) {
-			if (bet.getDriverId().equals(winningDriverId)) {
+		// Calculate total pool and winners' share
+		long totalPool = bets.stream().mapToLong(Bet::getAmountEur).sum();
+		List<Bet> winningBets = bets.stream()
+				.filter(bet -> bet.getDriverId().equals(winningDriverId))
+				.toList();
+
+		if (!winningBets.isEmpty()) {
+			long totalWinningBets = winningBets.stream().mapToLong(Bet::getAmountEur).sum();
+
+			for (Bet bet : winningBets) {
 				bet.setStatus(BetStatus.WON);
-				long payout = bet.getAmountEur() * bet.getOdds();
+				// Proportional distribution: (betAmount / totalWinningBets) * totalPool
+				// Round down to whole EUR amounts
+				long proportionalShare = (bet.getAmountEur() * totalPool) / totalWinningBets;
 				User u = bet.getUser();
-				u.setBalanceEur(u.getBalanceEur() + payout);
-			} else {
-				bet.setStatus(BetStatus.LOST);
+				u.setBalanceEur(u.getBalanceEur() + proportionalShare);
 			}
 		}
+
+		// Mark losing bets
+		bets.stream()
+				.filter(bet -> !bet.getDriverId().equals(winningDriverId))
+				.forEach(bet -> bet.setStatus(BetStatus.LOST));
+
 		betRepository.saveAll(bets);
 
 		// Save event outcome

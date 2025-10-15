@@ -143,10 +143,14 @@ class BettingServiceIntegrationTest {
         assertThat(bet1.getStatus()).isEqualTo(BetStatus.WON);
         assertThat(bet2.getStatus()).isEqualTo(BetStatus.LOST);
 
-        // Balances updated
+        // Balances updated with proportional distribution
         User u1r = userRepository.findById(u1.getId()).orElseThrow();
         User u2r = userRepository.findById(u2.getId()).orElseThrow();
-        assertThat(u1r.getBalanceEur()).isEqualTo(start1 - amount1 + amount1 * bet1.getOdds());
+
+        // Total pool: 10 + 5 = 15 EUR
+        // Winner's proportional share: (10 / 10) * 15 = 15 EUR (rounded down)
+        long expectedU1Balance = start1 - amount1 + 15L;
+        assertThat(u1r.getBalanceEur()).isEqualTo(expectedU1Balance);
         assertThat(u2r.getBalanceEur()).isEqualTo(start2 - amount2);
 
         // Outcome persisted and event settled
