@@ -102,18 +102,31 @@ public class BettingService {
 	}
 
 	/**
-	 * Trigger event settlement
+	 * Lock event for settlement - separate from settlement logic
 	 */
 	@Transactional
-	public void settleEvent(Long eventId) {
-		// Lock event for settlement
+	public void lockEventForSettlement(Long eventId) {
 		HistoricalEvent event = historicalEventRepository.findById(eventId)
 				.orElseThrow(() -> new IllegalArgumentException("Event not found"));
 		if (event.getStatus() != EventStatus.OPEN) {
 			throw new IllegalStateException("Event is already locked or settled");
 		}
 		event.setStatus(EventStatus.LOCKED);
-		log.info( "Event {} is locked for settling", event.getEventId() );
+		historicalEventRepository.save(event);
+		log.info("Event {} is locked for settling", event.getEventId());
+	}
+
+	/**
+	 * Process event settlement - expects event to be already locked
+	 */
+	@Transactional
+	public void processEventSettlement(Long eventId) {
+		// Expect event to be already locked
+		HistoricalEvent event = historicalEventRepository.findById(eventId)
+				.orElseThrow(() -> new IllegalArgumentException("Event not found"));
+		if (event.getStatus() != EventStatus.LOCKED) {
+			throw new IllegalStateException("Event must be locked before settlement");
+		}
 
 		// Fetch winner from event-service
 		Long winningDriverId = fetchWinnerDriverId(eventId);

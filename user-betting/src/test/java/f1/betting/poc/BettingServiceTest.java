@@ -5,6 +5,7 @@ import f1.betting.poc.web.BetResponse;
 import f1.betting.poc.web.PlaceBetRequest;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -21,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -133,16 +136,17 @@ class BettingServiceTest {
     }
 
     @Test
+    @DisplayName("Settle event should handle two-step process: locking and settlement")
     void settleEventShouldUpdateBetsAndOutcome() {
         // Arrange using Faker for realistic random but bounded values
         Faker faker = new Faker();
         Long eventId = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
         Long winningDriverId = (long) faker.number().numberBetween(1, 99);
 
-        // Event is OPEN initially
+        // Event is LOCKED initially (pre-locked for processEventSettlement)
         HistoricalEvent he = new HistoricalEvent();
         he.setEventId(eventId);
-        he.setStatus(EventStatus.OPEN);
+        he.setStatus(EventStatus.LOCKED);
         given(historicalEventRepository.findById(eventId)).willReturn(Optional.of(he));
 
         // Users
@@ -186,7 +190,7 @@ class BettingServiceTest {
         given(historicalEventRepository.save(any(HistoricalEvent.class))).willAnswer(inv -> inv.getArgument(0));
 
         // When
-        service.settleEvent(eventId);
+        service.processEventSettlement(eventId);
 
         // Then
         assertThat(b1.getStatus()).isEqualTo(BetStatus.WON);
@@ -203,10 +207,25 @@ class BettingServiceTest {
         assertThat(savedOutcome.getWinningDriverId()).isEqualTo(winningDriverId);
         assertThat(savedOutcome.getSettledAt()).isNotNull();
 
-        // Event status transitions to SETTLED and save invoked
+        // Event status transitions to SETTLED and save invoked once
         assertThat(he.getStatus()).isEqualTo(EventStatus.SETTLED);
-        verify(historicalEventRepository).save(he);
+		then(historicalEventRepository).should(times(1)).save(he);
         // Bets persisted
-        verify(betRepository).saveAll(anyList());
+		then(betRepository).should().saveAll(anyList());
+    }
+
+    @Test
+    void settleEventShouldFailWhenEventNotLocked() {
+        // Given
+        Long eventId = 456L;
+        HistoricalEvent he = new HistoricalEvent();
+        he.setEventId(eventId);
+        he.setStatus(EventStatus.OPEN); // Not locked
+        given(historicalEventRepository.findById(eventId)).willReturn(Optional.of(he));
+
+        // When & Then
+        assertThatThrownBy(() -> service.processEventSettlement(eventId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("must be locked");
     }
 }

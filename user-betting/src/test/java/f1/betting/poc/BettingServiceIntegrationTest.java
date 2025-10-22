@@ -138,7 +138,8 @@ class BettingServiceIntegrationTest {
                 .willReturn(winner);
 
         // When
-        bettingService.settleEvent(eventId);
+        bettingService.lockEventForSettlement(eventId);
+        bettingService.processEventSettlement(eventId);
 
         // Then
         Bet bet1 = betRepository.findById(b1.betId()).orElseThrow();
@@ -360,14 +361,71 @@ class BettingServiceIntegrationTest {
         given(restTemplate.getForObject("http://localhost:8081/api/events/" + eventId + "/winner", EventResult.class))
                 .willReturn(winner);
 
-        // Act: settle
-        bettingService.settleEvent(eventId);
+        // Act: lock then settle
+        bettingService.lockEventForSettlement(eventId);
+        bettingService.processEventSettlement(eventId);
 
         // Assert: still no bets, but outcome persisted and event settled
         assertThat(betRepository.findByEventId(eventId)).isEmpty();
         EventOutcome outcome = eventOutcomeRepository.findById(eventId).orElseThrow();
         assertThat(outcome.getWinningDriverId()).isEqualTo(winningDriverId);
         assertThat(historicalEventRepository.findById(eventId).orElseThrow().getStatus()).isEqualTo(EventStatus.SETTLED);
+    }
+
+    @Test
+    void lockEventForSettlementShouldChangeStatusToLocked() {
+        // Arrange: create an OPEN historical event
+        Long eventId = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
+
+        HistoricalEvent he = new HistoricalEvent();
+        he.setEventId(eventId);
+        he.setEventName("Race-" + faker.lorem().word());
+        he.setCountry(faker.country().name());
+        he.setStatus(EventStatus.OPEN);
+        historicalEventRepository.save(he);
+
+        // Verify initial status
+        assertThat(historicalEventRepository.findById(eventId).orElseThrow().getStatus())
+                .isEqualTo(EventStatus.OPEN);
+
+        // When: lock the event
+        bettingService.lockEventForSettlement(eventId);
+
+        // Then: event should be locked
+        assertThat(historicalEventRepository.findById(eventId).orElseThrow().getStatus())
+                .isEqualTo(EventStatus.LOCKED);
+    }
+
+    @Test
+    void processEventSettlementShouldFailWhenEventNotLocked() {
+        // Arrange: create an OPEN historical event (not locked)
+        Long eventId = (long) faker.number().numberBetween(1, Integer.MAX_VALUE);
+        Long winningDriverId = (long) faker.number().numberBetween(1, 99);
+
+        HistoricalEvent he = new HistoricalEvent();
+        he.setEventId(eventId);
+        he.setEventName("Race-" + faker.lorem().word());
+        he.setCountry(faker.country().name());
+        he.setStatus(EventStatus.OPEN);
+        historicalEventRepository.save(he);
+
+        // Stub winner endpoint
+        EventResult winner = EventResult.builder()
+                .sessionKey(eventId)
+                .finished(true)
+                .winnerDriverNumber(winningDriverId)
+                .build();
+        given(restTemplate.getForObject("http://localhost:8081/api/events/" + eventId + "/winner", EventResult.class))
+                .willReturn(winner);
+
+        // When & Then: should fail because event is not locked
+        assertThatThrownBy(() -> bettingService.processEventSettlement(eventId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("must be locked");
+
+        // Event should remain OPEN
+        assertThat(historicalEventRepository.findById(eventId).orElseThrow().getStatus())
+                .isEqualTo(EventStatus.OPEN);
     }
 
     private User newUser() {

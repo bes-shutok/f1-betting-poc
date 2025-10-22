@@ -21,7 +21,8 @@ public class BettingController {
 
 	@PostMapping("/events/{eventId}/settle")
 	public ResponseEntity<Void> settleEvent(@PathVariable Long eventId) {
-		bettingService.settleEvent(eventId );
+		bettingService.lockEventForSettlement(eventId);
+		bettingService.processEventSettlement(eventId);
 		return ResponseEntity.ok().build();
 	}
 }
