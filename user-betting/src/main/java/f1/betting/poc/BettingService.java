@@ -6,10 +6,14 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import f1.betting.poc.domain.EventDetails;
@@ -131,14 +135,35 @@ public class BettingService {
 		// Fetch winner from event-service
 		Long winningDriverId = fetchWinnerDriverId(eventId);
 
-		// Fetch bets
-		List<Bet> bets = betRepository.findByEventId(eventId);
+		// Collect winning bets and process losing bets immediately using pagination
+		List<Bet> winningBets = new ArrayList<>();
+		long totalPool = 0L;
+		int page = 0;
+		int pageSize = 100;
+		Pageable pageable = PageRequest.of(page, pageSize);
+		Page<Bet> betPage;
 
-		// Calculate total pool and winners' share
-		long totalPool = bets.stream().mapToLong(Bet::getAmountEur).sum();
-		List<Bet> winningBets = bets.stream()
-				.filter(bet -> bet.getDriverId().equals(winningDriverId))
-				.toList();
+		do {
+			betPage = betRepository.findByEventId(eventId, pageable);
+			List<Bet> currentBatchLosingBets = new ArrayList<>();
+
+			for (Bet bet : betPage.getContent()) {
+				totalPool += bet.getAmountEur();
+				if (bet.getDriverId().equals(winningDriverId)) {
+					winningBets.add(bet);
+				} else {
+					bet.setStatus(BetStatus.LOST);
+					currentBatchLosingBets.add(bet);
+				}
+			}
+
+			// Save losing bets immediately for this batch
+			if (!currentBatchLosingBets.isEmpty()) {
+				betRepository.saveAll(currentBatchLosingBets);
+			}
+
+			pageable = PageRequest.of(++page, pageSize);
+		} while (betPage.hasNext());
 
 		if (!winningBets.isEmpty()) {
 			long totalWinningBets = winningBets.stream().mapToLong(Bet::getAmountEur).sum();
@@ -153,12 +178,8 @@ public class BettingService {
 			}
 		}
 
-		// Mark losing bets
-		bets.stream()
-				.filter(bet -> !bet.getDriverId().equals(winningDriverId))
-				.forEach(bet -> bet.setStatus(BetStatus.LOST));
-
-		betRepository.saveAll(bets);
+		// Save only winning bets (losing bets already saved in batches)
+		betRepository.saveAll(winningBets);
 
 		// Save event outcome
 		EventOutcome outcome = new EventOutcome();

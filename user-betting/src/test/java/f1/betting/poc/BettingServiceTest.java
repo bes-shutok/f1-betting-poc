@@ -13,6 +13,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -177,14 +180,17 @@ class BettingServiceTest {
         b2.setOdds(2);
         b2.setStatus(BetStatus.PENDING);
 
-        given(betRepository.findByEventId(eventId)).willReturn(List.of(b1, b2));
+        // Simulate pagination: first page has both bets, then no more pages
+        given(betRepository.findByEventId(eq(eventId), any(Pageable.class)))
+                .willReturn(new PageImpl<>(List.of(b1, b2), Pageable.ofSize(100), 2)) // First batch
+                .willReturn(new PageImpl<>(List.of(), Pageable.ofSize(100), 0)); // Empty page
 
         // Winner fetched from event-service
         EventResult winner = EventResult.builder().sessionKey(eventId).finished(true).winnerDriverNumber(winningDriverId).build();
         given(restTemplate.getForObject(anyString(), eq(EventResult.class)))
                 .willReturn(winner);
 
-        // Echo saves
+        // Echo saves for multiple calls
         given(betRepository.saveAll(anyList())).willAnswer(inv -> inv.getArgument(0));
         given(eventOutcomeRepository.save(any(EventOutcome.class))).willAnswer(inv -> inv.getArgument(0));
         given(historicalEventRepository.save(any(HistoricalEvent.class))).willAnswer(inv -> inv.getArgument(0));
@@ -210,10 +216,12 @@ class BettingServiceTest {
         // Event status transitions to SETTLED and save invoked once
         assertThat(he.getStatus()).isEqualTo(EventStatus.SETTLED);
 		then(historicalEventRepository).should(times(1)).save(he);
-        // Bets persisted
-		then(betRepository).should().saveAll(anyList());
+        // Bets persisted: saveAll called twice - once for losing bets batch, once for winning bets
+		then(betRepository).should(times(2)).saveAll(anyList());
     }
 
+    
+    
     @Test
     void settleEventShouldFailWhenEventNotLocked() {
         // Given
