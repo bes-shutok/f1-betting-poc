@@ -1,8 +1,5 @@
 -- V1__init_schema.sql
 
--- Optional extension for case-insensitive columns
--- CREATE EXTENSION IF NOT EXISTS citext;
-
 -- USERS
 CREATE TABLE users (
     id              BIGSERIAL PRIMARY KEY,
@@ -47,12 +44,3 @@ CREATE TABLE bets (
 
 CREATE INDEX ix_bets_event ON bets(event_id);
 CREATE INDEX ix_bets_user ON bets(user_id);
-
--- EVENT PROVIDER PAYLOAD (optional cache of provider response)
-CREATE TABLE event_provider_payloads (
-    event_id        BIGINT PRIMARY KEY,
-    provider_name   TEXT NOT NULL,
-    raw_payload     JSONB,
-    fetched_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_payload_provider ON event_provider_payloads(provider_name);

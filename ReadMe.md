@@ -15,9 +15,8 @@ Both services share common DTOs via the common module. All identifiers and money
 - Windows PowerShell: .\gradlew test
 
 # Running locally
-## # Open API / swagger
-- user-betting: http://localhost:8080/swagger-ui/index.html
-- event-service: http://localhost:8081/swagger-ui/index.html
+
+## event-service
 - Using Gradle: ./gradlew :event-service:bootRun
 - Swagger UI: http://localhost:8081/swagger-ui/index.html
 - Example: http://localhost:8081/api/events?country=Belgium
